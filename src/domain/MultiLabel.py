@@ -17,7 +17,7 @@ class MultiLabel:
         return self.mapping
 
     def get_patterns(self) -> Set[Pattern]:
-        return self.mapping.keys()
+        return set(self.mapping.keys())
 
     def get_label(self, pattern: Pattern) -> Label:
         if pattern not in self.mapping:
@@ -37,3 +37,6 @@ class MultiLabel:
             )
 
         return MultiLabel(new_mapping)
+
+    def __repr__(self):
+        return f"MultiLabel({self.mapping})"

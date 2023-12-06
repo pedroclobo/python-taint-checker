@@ -5,6 +5,8 @@ from domain.Sink import Sink
 from domain.Source import Source
 from domain.Vulnerability import Vulnerability
 
+import json
+
 
 class Pattern:
     def __init__(
@@ -44,3 +46,26 @@ class Pattern:
 
     def consider_implicit(self) -> bool:
         return self.implicit
+
+    @classmethod
+    def from_json(cls, json_data):
+        vulnerability = Vulnerability(json_data["vulnerability"])
+        sources = {Source(source) for source in json_data["sources"]}
+        sinks = {Sink(sink) for sink in json_data["sinks"]}
+        sanitizers = {
+            Sanitizer(sanitizer) for sanitizer in json_data.get("sanitizers", [])
+        }
+        implicit = json_data.get("implicit", False)
+
+        return cls(vulnerability, sources, sanitizers, sinks, implicit)
+
+    def __repr__(self):
+        return (
+            "Pattern {\n"
+            + f"\tvulnerability: {self.vulnerability},\n"
+            + f"\tsources: {self.sources},\n"
+            + f"\tsanitizers: {self.sanitizers},\n"
+            + f"\tsinks: {self.sinks},\n"
+            + f"\timplicit: {self.implicit}\n"
+            + "}"
+        )

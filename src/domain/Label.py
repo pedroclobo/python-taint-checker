@@ -13,11 +13,11 @@ class Label:
     since its flow from each source.
     """
 
-    def __init__(self):
-        self.sources = set()
-        self.sanitizers = {}
-
-    def __init__(self, sources: Set[Source], sanitizers: Dict[Source, Set[Sanitizer]]):
+    def __init__(
+        self,
+        sources: Set[Source] = set(),
+        sanitizers: Dict[Source, Set[Sanitizer]] = {},
+    ):
         self.sources = sources
         self.sanitizers = sanitizers
 
@@ -25,20 +25,25 @@ class Label:
         return self.sources
 
     def add_source(self, source: Source):
-        self.sources.append(source)
-        self.sanitizers[source] = []
+        self.sources.add(source)
+        self.sanitizers[source] = set()
 
     def get_sanitizers(self) -> Dict[Source, Set[Sanitizer]]:
         return self.sanitizers
 
     def add_sanitizer_for_source(self, sanitizer: Sanitizer, source: Source):
-        self.sanitizers[source].append(sanitizer)
+        if source in self.sanitizers:
+            self.sanitizers[source].add(sanitizer)
+        else:
+            self.sanitizers[source] = {sanitizer}
 
     def combine(self, other: "Label"):
         """
         Return a new Label with the union of the sources and sanitizers of the two labels.
         """
-        return Label(
-            self.sources.union(other.get_sources()),
-            {**self.sanitizers, **other.get_sanitizers()},
-        )
+        combined_sources = self.get_sources().union(other.get_sources())
+        combined_sanitizers = {**self.sanitizers, **other.get_sanitizers()}
+        return Label(combined_sources, combined_sanitizers)
+
+    def __repr__(self):
+        return f"Label({self.sources}, {self.sanitizers})"
