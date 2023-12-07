@@ -1,6 +1,8 @@
-from typing import Set
-from domain.MultiLabel import MultiLabel
+import json
 
+from typing import Dict, Set
+
+from domain.MultiLabel import MultiLabel
 from domain.Pattern import Pattern
 from domain.Vulnerability import Vulnerability
 from domain.Source import Source
@@ -9,7 +11,7 @@ from domain.Sink import Sink
 
 
 class Policy:
-    def __init__(self, patterns: Set[Pattern]):
+    def __init__(self, patterns: Set[Pattern]) -> None:
         self.patterns = patterns
 
     def get_patterns(self) -> Set[Pattern]:
@@ -17,29 +19,6 @@ class Policy:
 
     def get_vulnerabilities(self) -> Set[Vulnerability]:
         return {pattern.get_vulnerability() for pattern in self.patterns}
-
-    def get_vulnerabilities_with_source(self, source: Source) -> Set[Vulnerability]:
-        return {
-            pattern.get_vulnerability()
-            for pattern in self.patterns
-            if pattern.has_source(source)
-        }
-
-    def get_vulnerabilities_with_sanitizer(
-        self, sanitizer: Sanitizer
-    ) -> Set[Vulnerability]:
-        return {
-            pattern.get_vulnerability()
-            for pattern in self.patterns
-            if pattern.has_sanitizer(sanitizer)
-        }
-
-    def get_vulnerabilities_with_sink(self, sink: Sink) -> Set[Vulnerability]:
-        return {
-            pattern.get_vulnerability()
-            for pattern in self.patterns
-            if pattern.has_sink(sink)
-        }
 
     def get_illegal_flows(self, sink: Sink, multilabel: MultiLabel) -> MultiLabel:
         new_mapping = {}
@@ -50,5 +29,8 @@ class Policy:
 
         return MultiLabel(new_mapping)
 
-    def __repr__(self):
-        return f"Policy({self.patterns})"
+    def to_json(self) -> Dict:
+        return {"patterns": [pattern.to_json() for pattern in self.patterns]}
+
+    def __repr__(self) -> str:
+        return json.dumps(self.to_json(), indent=2)

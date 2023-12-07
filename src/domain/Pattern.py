@@ -1,11 +1,11 @@
-from typing import Set
+import json
+
+from typing import Dict, Set
 
 from domain.Sanitizer import Sanitizer
 from domain.Sink import Sink
 from domain.Source import Source
 from domain.Vulnerability import Vulnerability
-
-import json
 
 
 class Pattern:
@@ -16,7 +16,7 @@ class Pattern:
         sanitizers: Set[Sanitizer],
         sinks: Set[Sink],
         implicit: bool,
-    ):
+    ) -> None:
         self.vulnerability = vulnerability
         self.sources = sources
         self.sanitizers = sanitizers
@@ -48,7 +48,7 @@ class Pattern:
         return self.implicit
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data) -> "Pattern":
         vulnerability = Vulnerability(json_data["vulnerability"])
         sources = {Source(source) for source in json_data["sources"]}
         sinks = {Sink(sink) for sink in json_data["sinks"]}
@@ -59,13 +59,14 @@ class Pattern:
 
         return cls(vulnerability, sources, sanitizers, sinks, implicit)
 
-    def __repr__(self):
-        return (
-            "Pattern {\n"
-            + f"\tvulnerability: {self.vulnerability},\n"
-            + f"\tsources: {self.sources},\n"
-            + f"\tsanitizers: {self.sanitizers},\n"
-            + f"\tsinks: {self.sinks},\n"
-            + f"\timplicit: {self.implicit}\n"
-            + "}"
-        )
+    def to_json(self) -> Dict:
+        return {
+            "vulnerability": self.vulnerability,
+            "sources": [source for source in self.sources],
+            "sanitizers": [sanitizer for sanitizer in self.sanitizers],
+            "sinks": [sink for sink in self.sinks],
+            "implicit": self.implicit,
+        }
+
+    def __repr__(self) -> str:
+        return json.dumps(self.to_json(), indent=2)

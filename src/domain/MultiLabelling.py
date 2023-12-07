@@ -1,28 +1,56 @@
-from typing import Dict
+import json
+
+from typing import Dict, Set
+
 from domain.MultiLabel import MultiLabel
 from domain.Variable import Variable
+from domain.Pattern import Pattern
 
 
 class MultiLabelling:
-    def __init__(self, mapping: Dict[Variable, MultiLabel] = {}):
+    """
+    Maps variables to multilabels.
+    """
+
+    def __init__(self, mapping: Dict[Variable, MultiLabel] = {}) -> None:
         self.mapping = mapping
 
-    def has_mutilabel(self, name: Variable) -> bool:
+    def has_multi_label(self, name: Variable) -> bool:
         return name in self.mapping
 
-    def get_multilabel(self, name: Variable) -> MultiLabel:
-        if not self.has_mutilabel(name):
+    def get_multi_label(self, name: Variable) -> MultiLabel:
+        if not self.has_multi_label(name):
             raise ValueError(f"Variable {name} does not have a multilabel")
         return self.mapping[name]
 
-    def add_multilabel(self, multilabel: MultiLabel, name: Variable):
-        if self.has_mutilabel(name):
-            self.mapping[name] = multilabel.combine(self.get_multilabel(name))
+    def get_multi_labels(self) -> Set[MultiLabel]:
+        return set(self.mapping.values())
+
+    def add_multi_label(self, multilabel: MultiLabel, name: Variable) -> None:
+        if self.has_multi_label(name):
+            self.mapping[name] = multilabel.combine(self.get_multi_label(name))
         else:
             self.mapping[name] = multilabel
 
-    def override_multilabel(self, multilabel: MultiLabel, name: Variable):
-        self.mapping[name] = multilabel
+    def get_patterns(self) -> Set[Pattern]:
+        return set.union(
+            *[multi_label.get_patterns() for multi_label in self.get_multi_labels()]
+        )
 
-    def __repr__(self):
-        return f"MultiLabelling({self.mapping})"
+    def get_variables_for_pattern(self, pattern: Pattern) -> Set[Variable]:
+        return {
+            variable
+            for variable, multilabel in self.mapping.items()
+            if pattern in multilabel.get_patterns()
+        }
+
+    def to_json(self) -> Dict:
+        return {
+            "mapping": [
+                (name, multilabel.to_json())
+                for name, multilabel in self.mapping.items()
+            ]
+        }
+
+    def __repr__(self) -> str:
+        return json.dumps(self.to_json(), indent=2)

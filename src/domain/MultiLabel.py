@@ -1,3 +1,5 @@
+import json
+
 from typing import Dict, Set
 
 from domain.Label import Label
@@ -10,7 +12,7 @@ class MultiLabel:
     corresponding to different patterns.
     """
 
-    def __init__(self, mapping: Dict[Pattern, Label]):
+    def __init__(self, mapping: Dict[Pattern, Label]) -> None:
         self.mapping = mapping
 
     def get_mapping(self) -> Dict[Pattern, Label]:
@@ -24,10 +26,10 @@ class MultiLabel:
             return Label()
         return self.mapping[pattern]
 
-    def add_label(self, label: Label, pattern: Pattern):
+    def add_label(self, label: Label, pattern: Pattern) -> None:
         self.mapping[pattern] = label
 
-    def combine(self, other: "MultiLabel"):
+    def combine(self, other: "MultiLabel") -> "MultiLabel":
         new_mapping = {}
         patterns = self.get_patterns().union(other.get_patterns())
 
@@ -38,5 +40,13 @@ class MultiLabel:
 
         return MultiLabel(new_mapping)
 
-    def __repr__(self):
-        return f"MultiLabel({self.mapping})"
+    def to_json(self) -> Dict:
+        return {
+            "mapping": [
+                (pattern.to_json(), label.to_json())
+                for pattern, label in self.get_mapping().items()
+            ]
+        }
+
+    def __repr__(self) -> str:
+        return json.dumps(self.to_json(), indent=2)

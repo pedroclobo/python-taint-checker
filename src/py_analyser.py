@@ -44,26 +44,13 @@ if __name__ == "__main__":
         print("Pattern file not found", file=sys.stderr)
         sys.exit(1)
 
-    # # Collect variables
-    # collector = VariableCollector()
-    # collector.visit(tree)
-    # variables = collector.variables
-    # print(variables)
-
-    # # Create labels for each of the variables
-    # labels = {}
-    # for variable in variables:
-    #     labels[variable] = Label()
-
+    # Find illegal flows
     vulnerabilities = Vulnerabilities(policy)
     nodeProcessor = NodeProcessor(vulnerabilities)
     nodeProcessor.visit(tree)
 
-    # Write results
-    # print(f"Slice:\n{slice}\n")
-    # print(f"Tree:\n{ast.dump(tree)}\n")
-    # print(f"Patterns:\n{patterns}\n")
+    illegal_flows = [flow.to_json() for flow in vulnerabilities.get_illegal_flows()]
 
     OUTPUT_FILE = f"output/{SLICE_NAME}.output.json"
     with open(OUTPUT_FILE, "w") as f:
-        f.write("OUTPUT")
+        f.write(json.dumps(illegal_flows) + "\n")

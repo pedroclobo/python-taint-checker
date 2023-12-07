@@ -17,7 +17,6 @@ class NodeProcessor(ast.NodeVisitor):
 
     # Entry point
     def visit_Module(self, node):
-        print(ast.dump(node, indent=2) + "\n")
         for child in node.body:
             self.visit(child)
 
@@ -40,13 +39,24 @@ class NodeProcessor(ast.NodeVisitor):
         raise NotImplementedError
 
     def visit_Call(self, node):
-        raise NotImplementedError
+        for pattern in self.vulnerabilities.get_patterns():
+            func_name = node.func.id
+
+            if pattern.has_sink(func_name):
+                for arg in node.args:
+                    arg_name = arg.id
+                    if isinstance(arg, ast.Name):
+                        self.vulnerabilities.add_sink_to_label(
+                            pattern, arg_name, func_name, node.lineno
+                        )
+                    elif isinstance(arg, ast.Constant):
+                        pass
 
     def visit_Attribute(self, node):
         raise NotImplementedError
 
     def visit_Expr(self, node):
-        raise NotImplementedError
+        self.visit(node.value)
 
     # TODO: support multiple targets
     def visit_Assign(self, node):
@@ -54,7 +64,7 @@ class NodeProcessor(ast.NodeVisitor):
             target = node.targets[0].id
 
             # add label for variable
-            self.vulnerabilities.add_label(pattern, target)
+            self.vulnerabilities.add_empty_label(pattern, target)
 
             if isinstance(node.value, ast.Constant):
                 pass  # nothing to do
@@ -62,14 +72,9 @@ class NodeProcessor(ast.NodeVisitor):
                 func_name = node.value.func.id
 
                 if pattern.has_source(func_name):
-                    print("sdjkadsjkdjaskda")
-                    print("sdjkadsjkdjaskda")
-                    print("sdjkadsjkdjaskda")
-                    print("sdjkadsjkdjaskda")
-                    print("sdjkadsjkdjaskda")
-                    self.vulnerabilities.add_label_with_source(pattern, target, func_name)
-
-                print(self.vulnerabilities)
+                    self.vulnerabilities.add_source_to_label(
+                        pattern, target, func_name, node.lineno
+                    )
 
             else:
                 print(f"Unsupported node type: {node.value.__class__.__name__}")
