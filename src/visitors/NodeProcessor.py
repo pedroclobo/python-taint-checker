@@ -17,6 +17,7 @@ class NodeProcessor(ast.NodeVisitor):
 
     # Entry point
     def visit_Module(self, node):
+        print(ast.dump(node, indent=2))
         for child in node.body:
             self.visit(child)
 
@@ -46,8 +47,8 @@ class NodeProcessor(ast.NodeVisitor):
                 for arg in node.args:
                     arg_name = arg.id
                     if isinstance(arg, ast.Name):
-                        self.vulnerabilities.add_sink_to_label(
-                            pattern, arg_name, func_name, node.lineno
+                        self.vulnerabilities.add_sink(
+                            pattern, func_name, node.lineno, arg_name
                         )
                     elif isinstance(arg, ast.Constant):
                         pass

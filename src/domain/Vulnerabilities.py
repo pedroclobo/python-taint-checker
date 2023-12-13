@@ -5,6 +5,7 @@ from typing import Dict, Set
 from domain.Label import Label
 from domain.MultiLabel import MultiLabel
 from domain.MultiLabelling import MultiLabelling
+from domain.MultiSink import MultiSink
 from domain.Pattern import Pattern
 from domain.Policy import Policy
 from domain.Sink import Sink
@@ -24,6 +25,7 @@ class Vulnerabilities:
     ) -> None:
         self.policy = policy
         self.multilabelling = multilabelling
+        self.multi_sink = MultiSink()
 
     def get_policy(self) -> Policy:
         return self.policy
@@ -44,11 +46,10 @@ class Vulnerabilities:
         label = Label(sources={(source, lineno)})
         self.multilabelling.add_multi_label(MultiLabel({pattern: label}), variable)
 
-    def add_sink_to_label(
-        self, pattern: Pattern, variable: Variable, sink: Sink, lineno: int
+    def add_sink(
+        self, pattern: Pattern, sink: Sink, lineno: int, variable: Variable
     ) -> None:
-        label = Label(sinks={(sink, lineno)})
-        self.multilabelling.add_multi_label(MultiLabel({pattern: label}), variable)
+        self.multi_sink.add_sink(pattern, sink, lineno, variable)
 
     def get_illegal_flows(self) -> Set[IllegalFlow]:
         illegal_flows = set()
@@ -58,17 +59,20 @@ class Vulnerabilities:
             for variable in self.multilabelling.get_variables_for_pattern(pattern):
                 label = self.multilabelling.get_multi_label(variable).get_label(pattern)
                 for source, source_lineno in label.get_sources():
-                    for sink, sink_lineno in label.get_sinks():
-                        illegal_flows.add(
-                            IllegalFlow(
-                                pattern.get_vulnerability() + "_" + str(i),
-                                source,
-                                source_lineno,
-                                sink,
-                                sink_lineno,
+                    for sink, sink_lineno in self.multi_sink.get_sinks(pattern):
+                        if self.multi_sink.is_variable_in_sink(
+                            pattern, sink, sink_lineno, variable
+                        ):
+                            illegal_flows.add(
+                                IllegalFlow(
+                                    pattern.get_vulnerability() + "_" + str(i),
+                                    source,
+                                    source_lineno,
+                                    sink,
+                                    sink_lineno,
+                                )
                             )
-                        )
-                    i += 1
+                            i += 1
 
         return illegal_flows
 
