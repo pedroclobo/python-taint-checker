@@ -26,6 +26,9 @@ class IllegalFlow:
         self.unsanitized_flows = unsanitized_flows
         self.sanitizes_flows = sanitized_flows
 
+    def get_vulnerability(self) -> Vulnerability:
+        return self.vulnerability
+
     def to_json(self) -> Dict:
         return {
             "vulnerability": str(self.vulnerability),

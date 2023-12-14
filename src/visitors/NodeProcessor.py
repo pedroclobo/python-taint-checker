@@ -17,7 +17,7 @@ class NodeProcessor(ast.NodeVisitor):
 
     # Entry point
     def visit_Module(self, node):
-        print(ast.dump(node, indent=2))
+        # print(ast.dump(node, indent=2))
         for child in node.body:
             self.visit(child)
 
@@ -45,11 +45,9 @@ class NodeProcessor(ast.NodeVisitor):
 
             if pattern.has_sink(func_name):
                 for arg in node.args:
-                    arg_name = arg.id
                     if isinstance(arg, ast.Name):
-                        self.vulnerabilities.add_sink(
-                            pattern, func_name, node.lineno, arg_name
-                        )
+                        self.vulnerabilities.add_combined_label(arg.id, func_name)
+                        self.vulnerabilities.add_sink(pattern, func_name, node.lineno)
                     elif isinstance(arg, ast.Constant):
                         pass
 
@@ -62,20 +60,31 @@ class NodeProcessor(ast.NodeVisitor):
     # TODO: support multiple targets
     def visit_Assign(self, node):
         for pattern in self.vulnerabilities.get_patterns():
-            target = node.targets[0].id
+            target_id = node.targets[0].id
 
-            # add label for variable
-            self.vulnerabilities.add_empty_label(pattern, target)
-
+            # nothing to do
             if isinstance(node.value, ast.Constant):
-                pass  # nothing to do
+                pass
+
+            # function could be a source
             elif isinstance(node.value, ast.Call):
                 func_name = node.value.func.id
 
                 if pattern.has_source(func_name):
                     self.vulnerabilities.add_source_to_label(
-                        pattern, target, func_name, node.lineno
+                        pattern, target_id, func_name, node.lineno
                     )
+
+            # propagate label
+            elif isinstance(node.value, ast.Name):
+                if pattern.has_source(node.value.id):
+                    self.vulnerabilities.add_source_to_label(
+                        pattern, target_id, node.value.id, node.lineno
+                    )
+                if pattern.has_sink(target_id):
+                    self.vulnerabilities.add_sink(pattern, target_id, node.lineno)
+                source = node.value.id
+                self.vulnerabilities.add_combined_label(source, target_id)
 
             else:
                 print(f"Unsupported node type: {node.value.__class__.__name__}")

@@ -1,6 +1,6 @@
 import json
 
-from typing import Dict, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from domain.Sanitizer import Sanitizer
 from domain.Source import Source
@@ -23,8 +23,8 @@ class Label:
         self.sources = sources
         self.sanitizers = sanitizers
 
-    def get_sources(self) -> Set[Tuple[Source, int]]:
-        return self.sources
+    def get_sources(self) -> List[Tuple[Source, int]]:
+        return sorted(list(self.sources), key=lambda source: source[1])
 
     def add_source(self, source: Source, lineno: int) -> None:
         self.sources.add((source, lineno))
@@ -40,15 +40,15 @@ class Label:
         Return a new Label with the union of the sources and sanitizers of the 
         two labels.
         """
-        combined_sources = self.get_sources().union(other.get_sources())
-        combined_sanitizers = self.get_sanitizers().union(other.get_sanitizers())
+        combined_sources = self.sources.union(other.sources)
+        combined_sanitizers = self.sanitizers.union(other.sanitizers)
 
         return Label(combined_sources, combined_sanitizers)
 
     def to_json(self) -> Dict:
         return {
-            "sources": [source for source in self.get_sources()],
-            "sanitizers": [sanitizer for sanitizer in self.get_sanitizers()],
+            "sources": [source for source in self.sources],
+            "sanitizers": [sanitizer for sanitizer in self.sanitizers],
         }
 
     def __repr__(self) -> str:

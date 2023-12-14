@@ -1,6 +1,6 @@
 import json
 
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 from domain.Label import Label
 from domain.MultiLabel import MultiLabel
@@ -46,40 +46,53 @@ class Vulnerabilities:
         label = Label(sources={(source, lineno)})
         self.multilabelling.add_multi_label(MultiLabel({pattern: label}), variable)
 
-    def add_sink(
-        self, pattern: Pattern, sink: Sink, lineno: int, variable: Variable
+    def add_combined_label(
+        self, source_variable: Variable, destination_variable: Variable
     ) -> None:
-        self.multi_sink.add_sink(pattern, sink, lineno, variable)
+        source_variable_label = self.multilabelling.get_multi_label(source_variable)
+        combined_label = source_variable_label.combine(
+            self.multilabelling.get_multi_label(destination_variable)
+        )
+        self.multilabelling.add_multi_label(combined_label, destination_variable)
 
-    def get_illegal_flows(self) -> Set[IllegalFlow]:
+    def add_sink(
+        self,
+        pattern: Pattern,
+        sink: Sink,
+        lineno: int,
+    ) -> None:
+        self.multi_sink.add_sink(pattern, sink, lineno)
+
+    def get_illegal_flows(self) -> List[IllegalFlow]:
         illegal_flows = set()
 
         for pattern in self.multilabelling.get_patterns():
             i = 1
             for variable in self.multilabelling.get_variables_for_pattern(pattern):
-                label = self.multilabelling.get_multi_label(variable).get_label(pattern)
-                for source, source_lineno in label.get_sources():
-                    for sink, sink_lineno in self.multi_sink.get_sinks(pattern):
-                        if self.multi_sink.is_variable_in_sink(
-                            pattern, sink, sink_lineno, variable
-                        ):
-                            illegal_flows.add(
-                                IllegalFlow(
-                                    pattern.get_vulnerability() + "_" + str(i),
-                                    source,
-                                    source_lineno,
-                                    sink,
-                                    sink_lineno,
-                                )
+                if pattern.has_sink(variable):
+                    label = self.multilabelling.get_multi_label(variable).get_label(
+                        pattern
+                    )
+                    sink_lineno = self.multi_sink.get_lineno(pattern, variable)
+                    for source, source_lineno in label.get_sources():
+                        illegal_flows.add(
+                            IllegalFlow(
+                                pattern.get_vulnerability() + "_" + str(i),
+                                source,
+                                source_lineno,
+                                variable,
+                                sink_lineno,
                             )
-                            i += 1
+                        )
+                        i += 1
 
-        return illegal_flows
+        return sorted(list(illegal_flows), key=lambda flow: flow.get_vulnerability())
 
     def to_json(self) -> Dict:
         return {
             "policy": self.policy.to_json(),
             "multilabelling": self.multilabelling.to_json(),
+            "multi_sink": self.multi_sink.to_json(),
         }
 
     def __repr__(self) -> str:

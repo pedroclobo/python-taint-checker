@@ -12,7 +12,7 @@ class MultiLabel:
     corresponding to different patterns.
     """
 
-    def __init__(self, mapping: Dict[Pattern, Label]) -> None:
+    def __init__(self, mapping: Dict[Pattern, Label] = {}) -> None:
         self.mapping = mapping
 
     def get_mapping(self) -> Dict[Pattern, Label]:
