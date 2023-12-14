@@ -53,4 +53,4 @@ if __name__ == "__main__":
 
     OUTPUT_FILE = f"output/{SLICE_NAME}.output.json"
     with open(OUTPUT_FILE, "w") as f:
-        f.write(json.dumps(illegal_flows) + "\n")
+        f.write(json.dumps(illegal_flows, indent=4) + "\n")
