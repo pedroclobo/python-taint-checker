@@ -34,6 +34,9 @@ if [ "$#" == 1 ]; then
     exit 0
 fi
 
+passed=0
+total=0
+
 for SLICE_FILE in $TEST_DIR/slices/*.py; do
     SLICE_NAME=$(basename $SLICE_FILE .py)
     PATTERN_FILE="$TEST_DIR/patterns/$SLICE_NAME.patterns.json"
@@ -47,7 +50,12 @@ for SLICE_FILE in $TEST_DIR/slices/*.py; do
 
     if diff <(echo "$PROGRAM_OUTPUT") <(echo "$EXPECTED_OUTPUT") &> /dev/null; then
         echo -e "${GREEN}PASSED: ${NC}$SLICE_NAME"
+        passed=$((passed+1))
     else
         echo -e "${RED}FAILED: ${NC}$SLICE_NAME"
     fi
+    total=$((total+1))
 done
+
+echo
+echo "PASSED: $passed/$total"
