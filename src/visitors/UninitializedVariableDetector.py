@@ -32,11 +32,9 @@ class UninitializedVariableDetector(ast.NodeVisitor):
         return
 
     def visit_Name(self, node):
-        print(f"Adding {node.id}")
         self.variables.add(node.id)
 
         if isinstance(node.ctx, ast.Store):
-            print(f"{node.id} is initialized")
             self.initialized.add(node.id)
 
     def visit_BinOp(self, node):
@@ -55,7 +53,6 @@ class UninitializedVariableDetector(ast.NodeVisitor):
     def visit_Call(self, node):
         self.visit(node.func)
         self.initialized.add(node.func.id) # function are considered to be initialized
-        print(f"{node.func.id} is initialized")
 
         for arg in node.args:
             self.visit(arg)
