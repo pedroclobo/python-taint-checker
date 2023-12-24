@@ -7,6 +7,7 @@ from domain.Pattern import Pattern
 from domain.Vulnerabilities import Vulnerabilities
 
 from visitors.NodeProcessor import NodeProcessor
+from visitors.UninitializedVariableDetector import UninitializedVariableDetector
 
 
 if __name__ == "__main__":
@@ -44,9 +45,15 @@ if __name__ == "__main__":
         print("Pattern file not found", file=sys.stderr)
         sys.exit(1)
 
+    # Find uninitialized variables
+    uninitialized_variable_detector = UninitializedVariableDetector()
+    uninitialized_variable_detector.visit(tree)
+
     # Find illegal flows
     vulnerabilities = Vulnerabilities(policy)
-    nodeProcessor = NodeProcessor(vulnerabilities)
+    nodeProcessor = NodeProcessor(
+        vulnerabilities, uninitialized_variable_detector.get_uninitialized_variables()
+    )
     nodeProcessor.visit(tree)
 
     illegal_flows = [flow.to_json() for flow in vulnerabilities.get_illegal_flows()]

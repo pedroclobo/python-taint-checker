@@ -3,6 +3,7 @@ import json
 from typing import Dict, List, Set
 
 from domain.MultiLabel import MultiLabel
+from domain.Sink import Sink
 from domain.Variable import Variable
 from domain.Pattern import Pattern
 
@@ -32,28 +33,20 @@ class MultiLabelling:
         else:
             self.mapping[name] = multilabel
 
-    def get_patterns(self) -> List[Pattern]:
-        return sorted(
-            list(
-                set.union(
-                    *[
-                        multi_label.get_patterns()
-                        for multi_label in self.get_multi_labels()
-                    ]
-                )
-            ),
-            key=lambda pattern: pattern.get_vulnerability(),
+    def get_patterns(self) -> Set[Pattern]:
+        return set.union(
+            *[multi_label.get_patterns() for multi_label in self.get_multi_labels()]
         )
 
-    def get_variables_for_pattern(self, pattern: Pattern) -> List[Variable]:
-        return sorted(
-            [
-                variable
-                for variable, multilabel in self.mapping.items()
-                if pattern in multilabel.get_patterns()
-            ],
-            key=lambda variable: variable,
-        )
+    def get_variables_for_pattern(self, pattern: Pattern) -> Set[Variable]:
+        return {
+            variable
+            for variable, multilabel in self.mapping.items()
+            if pattern in multilabel.get_patterns()
+        }
+
+    def get_sinks_for_pattern(self, pattern: Pattern) -> Set[Sink]:
+        return set(filter(pattern.has_sink, self.get_variables_for_pattern(pattern)))
 
     def to_json(self) -> Dict:
         return {

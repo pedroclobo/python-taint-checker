@@ -19,24 +19,37 @@ class MultiSink:
     def get_patterns(self) -> Set[Pattern]:
         return set(self.mapping.keys())
 
+    def has_pattern(self, pattern: Pattern) -> bool:
+        return pattern in self.mapping
+
     def get_sinks(self, pattern: Pattern) -> List[Tuple[Sink, int]]:
-        if pattern not in self.mapping:
+        if not self.has_pattern(pattern):
             return []
         return sorted(list(self.mapping[pattern]), key=lambda sink: sink[1])
 
     def is_sink(self, pattern: Pattern, sink: Sink) -> bool:
-        for s, _ in self.mapping[pattern]:
-            if s == sink:
-                return True
+        if self.has_pattern(pattern):
+            for s, _ in self.mapping[pattern]:
+                if s == sink:
+                    return True
 
         return False
 
     def get_lineno(self, pattern: Pattern, sink: Sink) -> int:
-        for s, lineno in self.mapping[pattern]:
-            if s == sink:
-                return lineno
+        """
+        Returns the smallest line number in the file
+        """
+        linenos = []
 
-        return -1
+        if self.has_pattern(pattern):
+            for s, lineno in self.mapping[pattern]:
+                if s == sink:
+                    linenos += [lineno]
+
+        if len(linenos) == 0:
+            return -1
+        else:
+            return min(linenos)
 
     def add_sink(
         self,

@@ -1,11 +1,19 @@
 import ast
+from typing import Set
 
+from domain.MultiLabel import MultiLabel
+from domain.Variable import Variable
 from domain.Vulnerabilities import Vulnerabilities
+
+from visitors.NodeLabeler import NodeLabeler
 
 
 class NodeProcessor(ast.NodeVisitor):
-    def __init__(self, vulnerabilities: Vulnerabilities):
+    def __init__(
+        self, vulnerabilities: Vulnerabilities, uninitialized_variables: Set[Variable]
+    ):
         self.vulnerabilities = vulnerabilities
+        self.uninitialized_variables = uninitialized_variables
 
     def visit(self, node):
         method_name = "visit_" + node.__class__.__name__
@@ -17,18 +25,26 @@ class NodeProcessor(ast.NodeVisitor):
 
     # Entry point
     def visit_Module(self, node):
-        # print(ast.dump(node, indent=2))
+        print(ast.dump(node, indent=2))
         for child in node.body:
             self.visit(child)
 
     def visit_Constant(self, node):
-        raise NotImplementedError
+        pass
 
     def visit_Name(self, node):
-        raise NotImplementedError
+        # add sinks
+        for pattern in self.vulnerabilities.get_patterns():
+            if pattern.has_sink(node.id):
+                self.vulnerabilities.add_sink(pattern, node.id, node.lineno)
+
+        # add multi-label
+        nodeLabel = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        self.vulnerabilities.add_multi_label(nodeLabel.visit(node), node.id)
 
     def visit_BinOp(self, node):
-        raise NotImplementedError
+        self.visit(node.left)
+        self.visit(node.right)
 
     def visit_UnaryOp(self, node):
         raise NotImplementedError
@@ -40,16 +56,27 @@ class NodeProcessor(ast.NodeVisitor):
         raise NotImplementedError
 
     def visit_Call(self, node):
-        for pattern in self.vulnerabilities.get_patterns():
-            func_name = node.func.id
+        self.visit(node.func)
+        for arg in node.args:
+            self.visit(arg)
 
-            if pattern.has_sink(func_name):
-                for arg in node.args:
-                    if isinstance(arg, ast.Name):
-                        self.vulnerabilities.add_combined_label(arg.id, func_name)
-                        self.vulnerabilities.add_sink(pattern, func_name, node.lineno)
-                    elif isinstance(arg, ast.Constant):
-                        pass
+        # combine multi-labels of function arguments
+        node_label = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        args_multi_label = MultiLabel()
+        for arg in node.args:
+            args_multi_label = args_multi_label.combine(node_label.visit(arg))
+
+        func_multi_label = self.vulnerabilities.get_multi_label(node.func.id)
+        func_multi_label = func_multi_label.combine(args_multi_label)
+
+        # add sanitizers
+        for pattern in self.vulnerabilities.get_patterns():
+            if pattern.has_sanitizer(node.func.id):
+                label = func_multi_label.get_label(pattern)
+                for source, _ in label.get_sources():
+                    label.add_sanitizer(node.func.id, node.lineno, source)
+
+        self.vulnerabilities.add_multi_label(func_multi_label, node.func.id)
 
     def visit_Attribute(self, node):
         raise NotImplementedError
@@ -57,38 +84,21 @@ class NodeProcessor(ast.NodeVisitor):
     def visit_Expr(self, node):
         self.visit(node.value)
 
-    # TODO: support multiple targets
     def visit_Assign(self, node):
-        for pattern in self.vulnerabilities.get_patterns():
-            target_id = node.targets[0].id
+        self.visit(node.value)
+        for target in node.targets:
+            self.visit(target)
 
-            # nothing to do
-            if isinstance(node.value, ast.Constant):
-                pass
+        node_label = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        value_multi_label = node_label.visit(node.value)
 
-            # function could be a source
-            elif isinstance(node.value, ast.Call):
-                func_name = node.value.func.id
-
-                if pattern.has_source(func_name):
-                    self.vulnerabilities.add_source_to_label(
-                        pattern, target_id, func_name, node.lineno
-                    )
-
-            # propagate label
-            elif isinstance(node.value, ast.Name):
-                if pattern.has_source(node.value.id):
-                    self.vulnerabilities.add_source_to_label(
-                        pattern, target_id, node.value.id, node.lineno
-                    )
-                if pattern.has_sink(target_id):
-                    self.vulnerabilities.add_sink(pattern, target_id, node.lineno)
-                source = node.value.id
-                self.vulnerabilities.add_combined_label(source, target_id)
-
-            else:
-                print(f"Unsupported node type: {node.value.__class__.__name__}")
-                raise NotImplementedError
+        # combine multi-label of values with targets
+        for target in node.targets:
+            target_multi_label = node_label.visit(target)
+            value_multi_label = value_multi_label.combine(target_multi_label)
+            self.vulnerabilities.add_multi_label(
+                target_multi_label.combine(value_multi_label), target.id
+            )
 
     def visit_If(self, node):
         raise NotImplementedError

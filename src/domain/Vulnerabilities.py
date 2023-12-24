@@ -1,15 +1,13 @@
 import json
 
-from typing import Dict, List, Set
+from typing import Dict, Set
 
-from domain.Label import Label
 from domain.MultiLabel import MultiLabel
 from domain.MultiLabelling import MultiLabelling
 from domain.MultiSink import MultiSink
 from domain.Pattern import Pattern
 from domain.Policy import Policy
 from domain.Sink import Sink
-from domain.Source import Source
 from domain.Variable import Variable
 from domain.IllegalFlow import IllegalFlow
 
@@ -36,24 +34,11 @@ class Vulnerabilities:
     def get_patterns(self) -> Set[Pattern]:
         return self.policy.get_patterns()
 
-    def add_empty_label(self, pattern: Pattern, variable: Variable) -> None:
-        label = Label()
-        self.multilabelling.add_multi_label(MultiLabel({pattern: label}), variable)
+    def get_multi_label(self, variable: Variable) -> MultiLabel:
+        return self.multilabelling.get_multi_label(variable)
 
-    def add_source_to_label(
-        self, pattern: Pattern, variable: Variable, source: Source, lineno: int
-    ) -> None:
-        label = Label(sources={(source, lineno)})
-        self.multilabelling.add_multi_label(MultiLabel({pattern: label}), variable)
-
-    def add_combined_label(
-        self, source_variable: Variable, destination_variable: Variable
-    ) -> None:
-        source_variable_label = self.multilabelling.get_multi_label(source_variable)
-        combined_label = source_variable_label.combine(
-            self.multilabelling.get_multi_label(destination_variable)
-        )
-        self.multilabelling.add_multi_label(combined_label, destination_variable)
+    def add_multi_label(self, label: MultiLabel, variable: Variable) -> None:
+        self.multilabelling.add_multi_label(label, variable)
 
     def add_sink(
         self,
@@ -63,30 +48,32 @@ class Vulnerabilities:
     ) -> None:
         self.multi_sink.add_sink(pattern, sink, lineno)
 
-    def get_illegal_flows(self) -> List[IllegalFlow]:
+    def get_illegal_flows(self) -> Set[IllegalFlow]:
         illegal_flows = set()
 
         for pattern in self.multilabelling.get_patterns():
             i = 1
-            for variable in self.multilabelling.get_variables_for_pattern(pattern):
-                if pattern.has_sink(variable):
-                    label = self.multilabelling.get_multi_label(variable).get_label(
-                        pattern
-                    )
-                    sink_lineno = self.multi_sink.get_lineno(pattern, variable)
-                    for source, source_lineno in label.get_sources():
-                        illegal_flows.add(
-                            IllegalFlow(
-                                pattern.get_vulnerability() + "_" + str(i),
-                                source,
-                                source_lineno,
-                                variable,
-                                sink_lineno,
-                            )
+            for sink in self.multilabelling.get_sinks_for_pattern(pattern):
+                sink_lineno = self.multi_sink.get_lineno(pattern, sink)
+                label = self.multilabelling.get_multi_label(sink).get_label(pattern)
+                for source, source_lineno in label.get_sources():
+                    if sink == source:
+                        continue
+                    sanitizers = list(label.get_sanitizers_for_source(source))
+                    illegal_flows.add(
+                        IllegalFlow(
+                            pattern.get_vulnerability() + "_" + str(i),
+                            source,
+                            source_lineno,
+                            sink,
+                            sink_lineno,
+                            True,
+                            [] if len(sanitizers) == 0 else [sanitizers],
                         )
-                        i += 1
+                    )
+                    i += 1
 
-        return sorted(list(illegal_flows), key=lambda flow: flow.get_vulnerability())
+        return illegal_flows
 
     def to_json(self) -> Dict:
         return {
