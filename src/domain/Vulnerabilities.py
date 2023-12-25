@@ -53,8 +53,7 @@ class Vulnerabilities:
 
         for pattern in self.multilabelling.get_patterns():
             i = 1
-            for sink in self.multilabelling.get_sinks_for_pattern(pattern):
-                sink_lineno = self.multi_sink.get_lineno(pattern, sink)
+            for sink, sink_lineno in self.multi_sink.get_sinks(pattern):
                 label = self.multilabelling.get_multi_label(sink).get_label(pattern)
                 for source, source_lineno in label.get_sources():
                     if sink == source:

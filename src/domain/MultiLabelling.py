@@ -45,9 +45,6 @@ class MultiLabelling:
             if pattern in multilabel.get_patterns()
         }
 
-    def get_sinks_for_pattern(self, pattern: Pattern) -> Set[Sink]:
-        return set(filter(pattern.has_sink, self.get_variables_for_pattern(pattern)))
-
     def to_json(self) -> Dict:
         return {
             "mapping": [

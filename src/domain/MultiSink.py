@@ -22,10 +22,10 @@ class MultiSink:
     def has_pattern(self, pattern: Pattern) -> bool:
         return pattern in self.mapping
 
-    def get_sinks(self, pattern: Pattern) -> List[Tuple[Sink, int]]:
+    def get_sinks(self, pattern: Pattern) -> Set[Tuple[Sink, int]]:
         if not self.has_pattern(pattern):
-            return []
-        return sorted(list(self.mapping[pattern]), key=lambda sink: sink[1])
+            return set()
+        return self.mapping[pattern]
 
     def is_sink(self, pattern: Pattern, sink: Sink) -> bool:
         if self.has_pattern(pattern):

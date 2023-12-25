@@ -33,10 +33,6 @@ class NodeProcessor(ast.NodeVisitor):
         pass
 
     def visit_Name(self, node):
-        # add sinks
-        for pattern in self.vulnerabilities.get_patterns():
-            if pattern.has_sink(node.id):
-                self.vulnerabilities.add_sink(pattern, node.id, node.lineno)
 
         # add multi-label
         nodeLabel = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
@@ -76,6 +72,11 @@ class NodeProcessor(ast.NodeVisitor):
                 for source, _ in label.get_sources():
                     label.add_sanitizer(node.func.id, node.lineno, source)
 
+        # add sinks
+        for pattern in self.vulnerabilities.get_patterns():
+            if pattern.has_sink(node.func.id) and isinstance(node.func.ctx, ast.Load):
+                self.vulnerabilities.add_sink(pattern, node.func.id, node.func.lineno)
+
         self.vulnerabilities.add_multi_label(func_multi_label, node.func.id)
 
     def visit_Attribute(self, node):
@@ -99,6 +100,12 @@ class NodeProcessor(ast.NodeVisitor):
             self.vulnerabilities.add_multi_label(
                 target_multi_label.combine(value_multi_label), target.id
             )
+
+        # add sinks
+        for pattern in self.vulnerabilities.get_patterns():
+            for target in node.targets:
+                if pattern.has_sink(target.id):
+                    self.vulnerabilities.add_sink(pattern, target.id, target.lineno)
 
     def visit_If(self, node):
         raise NotImplementedError
