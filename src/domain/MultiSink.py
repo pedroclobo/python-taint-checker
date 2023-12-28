@@ -35,22 +35,6 @@ class MultiSink:
 
         return False
 
-    def get_lineno(self, pattern: Pattern, sink: Sink) -> int:
-        """
-        Returns the smallest line number in the file
-        """
-        linenos = []
-
-        if self.has_pattern(pattern):
-            for s, lineno in self.mapping[pattern]:
-                if s == sink:
-                    linenos += [lineno]
-
-        if len(linenos) == 0:
-            return -1
-        else:
-            return min(linenos)
-
     def add_sink(
         self,
         pattern: Pattern,
