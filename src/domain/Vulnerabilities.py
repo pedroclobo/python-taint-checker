@@ -25,12 +25,6 @@ class Vulnerabilities:
         self.multilabelling = multilabelling
         self.multi_sink = MultiSink()
 
-    def get_policy(self) -> Policy:
-        return self.policy
-
-    def get_multi_labelling(self) -> MultiLabelling:
-        return self.multilabelling
-
     def get_patterns(self) -> Set[Pattern]:
         return self.policy.get_patterns()
 

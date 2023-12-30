@@ -17,14 +17,18 @@ class Label:
 
     def __init__(
         self,
-        sources: Set[Tuple[Source, int]] = set(),
-        sanitizers: Dict[Source, Set[Tuple[Sanitizer, int]]] = dict(),
+            sources=None,
+            sanitizers=None,
     ) -> None:
+        if sanitizers is None:
+            sanitizers = dict()
+        if sources is None:
+            sources = set()
         self.sources = sources
         self.sanitizers = sanitizers
 
-    def get_sources(self) -> List[Tuple[Source, int]]:
-        return sorted(list(self.sources), key=lambda source: source[1])
+    def get_sources(self) -> Set[Tuple[Source, int]]:
+        return self.sources
 
     def add_source(self, source: Source, lineno: int) -> None:
         self.sources.add((source, lineno))

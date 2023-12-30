@@ -12,11 +12,10 @@ class MultiLabel:
     corresponding to different patterns.
     """
 
-    def __init__(self, mapping: Dict[Pattern, Label] = {}) -> None:
+    def __init__(self, mapping=None) -> None:
+        if mapping is None:
+            mapping = {}
         self.mapping = mapping
-
-    def get_mapping(self) -> Dict[Pattern, Label]:
-        return self.mapping
 
     def get_patterns(self) -> Set[Pattern]:
         return set(self.mapping.keys())
@@ -44,7 +43,7 @@ class MultiLabel:
         return {
             "mapping": [
                 (pattern.to_json(), label.to_json())
-                for pattern, label in self.get_mapping().items()
+                for pattern, label in self.mapping.items()
             ]
         }
 

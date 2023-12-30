@@ -1,20 +1,14 @@
 import json
 
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Set, Tuple
 
 from domain.Pattern import Pattern
 from domain.Sink import Sink
-from domain.Variable import Variable
 
 
 class MultiSink:
     def __init__(self) -> None:
         self.mapping: Dict[Pattern, Set[Tuple[Sink, int]]] = {}
-
-    def get_mapping(
-        self,
-    ) -> Dict[Pattern, Set[Tuple[Sink, int]]]:
-        return self.mapping
 
     def get_patterns(self) -> Set[Pattern]:
         return set(self.mapping.keys())
@@ -26,14 +20,6 @@ class MultiSink:
         if not self.has_pattern(pattern):
             return set()
         return self.mapping[pattern]
-
-    def is_sink(self, pattern: Pattern, sink: Sink) -> bool:
-        if self.has_pattern(pattern):
-            for s, _ in self.mapping[pattern]:
-                if s == sink:
-                    return True
-
-        return False
 
     def add_sink(
         self,
