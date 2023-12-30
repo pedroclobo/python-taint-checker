@@ -1,7 +1,9 @@
 import ast
-from typing import Set
-from domain.Label import Label
 
+from typing import Set
+from domain.Flow import Flow
+
+from domain.Label import Label
 from domain.MultiLabel import MultiLabel
 from domain.Variable import Variable
 from domain.Vulnerabilities import Vulnerabilities
@@ -13,7 +15,9 @@ class NodeLabeler(ast.NodeVisitor):
     """
 
     def __init__(
-        self, vulnerabilities: Vulnerabilities, uninitialized_variables: Set[Variable]
+        self,
+        vulnerabilities: Vulnerabilities,
+        uninitialized_variables: Set[Variable],
     ):
         self.vulnerabilities = vulnerabilities
         self.uninitialized_variables: Set[Variable] = uninitialized_variables
@@ -40,7 +44,8 @@ class NodeLabeler(ast.NodeVisitor):
             if (pattern.has_source(node.id) and isinstance(node.ctx, ast.Load)) or (
                 node.id in self.uninitialized_variables
             ):
-                label = Label(sources={(node.id, node.lineno)})
+                label = Label()
+                label.add_source(node.id, node.lineno)
                 multi_label = multi_label.combine(MultiLabel({pattern: label}))
 
         return multi_label
@@ -64,7 +69,30 @@ class NodeLabeler(ast.NodeVisitor):
         for arg in node.args:
             multi_label_args = multi_label_args.combine(self.visit(arg))
 
-        return multi_label_func.combine(multi_label_args)
+        if node.func.id == "e":
+            print(f"multi_label_args: {multi_label_args}")
+
+        # add sources
+        for pattern in self.vulnerabilities.get_patterns():
+            args_label = multi_label_args.get_label(pattern)
+            label = multi_label_func.get_label(pattern)
+            for source, lineno in args_label.get_sources():
+                label.add_source(source, lineno)
+                label.get_flows_from_source(source).remove(Flow())  # remove empty flow
+            multi_label_func.add_label(label, pattern)
+
+        # combine multi-label of function with multi-label of arguments
+        multi_label_func = multi_label_func.combine(multi_label_args)
+
+        # add sanitizers
+        for pattern in self.vulnerabilities.get_patterns():
+            label = multi_label_func.get_label(pattern)
+            if pattern.has_sanitizer(node.func.id):
+                for source, _ in label.get_sources():
+                    label.add_sanitizer(node.func.id, node.lineno, source)
+            multi_label_func.add_label(label, pattern)
+
+        return multi_label_func
 
     def visit_Attribute(self, node):
         raise NotImplementedError

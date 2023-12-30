@@ -1,6 +1,7 @@
 import ast
 import sys
 import json
+from domain.Flow import Flow
 
 from domain.Policy import Policy
 from domain.Pattern import Pattern
@@ -56,7 +57,9 @@ if __name__ == "__main__":
     )
     nodeProcessor.visit(tree)
 
-    illegal_flows = [flow.to_json() for flow in vulnerabilities.get_illegal_flows()]
+    illegal_flows = [
+        illegal_flow.to_json() for illegal_flow in vulnerabilities.get_illegal_flows()
+    ]
 
     OUTPUT_FILE = f"output/{SLICE_NAME}.output.json"
     with open(OUTPUT_FILE, "w") as f:

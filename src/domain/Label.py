@@ -1,6 +1,8 @@
+from copy import deepcopy
 import json
 
 from typing import Dict, List, Set, Tuple
+from domain.Flow import Flow
 
 from domain.Sanitizer import Sanitizer
 from domain.Source import Source
@@ -15,34 +17,30 @@ class Label:
     since its flow from each source.
     """
 
-    def __init__(
-        self,
-            sources=None,
-            sanitizers=None,
-    ) -> None:
-        if sanitizers is None:
-            sanitizers = dict()
-        if sources is None:
-            sources = set()
-        self.sources = sources
-        self.sanitizers = sanitizers
+    def __init__(self) -> None:
+        self.sources: Set[Tuple[Source, int]] = set()
+        self.flows: Dict[Source, Set[Flow]] = dict()
 
     def get_sources(self) -> Set[Tuple[Source, int]]:
         return self.sources
 
     def add_source(self, source: Source, lineno: int) -> None:
         self.sources.add((source, lineno))
+        flow = Flow()
+        self.flows[source] = {flow}
 
-    def get_sanitizers_for_source(self, source: Source) -> Set[Tuple[Sanitizer, int]]:
-        if source not in self.sanitizers:
+    def get_flows_from_source(self, source: Source) -> Set[Flow]:
+        if source not in self.flows:
             return set()
-        return self.sanitizers[source]
+        return self.flows[source]
 
     def add_sanitizer(self, sanitizer: Sanitizer, lineno: int, source: Source) -> None:
-        if source not in self.sanitizers:
-            self.sanitizers[source] = set()
+        if source not in self.flows:
+            flow = Flow()
+            self.flows[source] = {flow}
 
-        self.sanitizers[source].add((sanitizer, lineno))
+        for flow in self.flows[source]:
+            flow.add_sanitizer(sanitizer, lineno)
 
     def combine(self, other: "Label") -> "Label":
         """
@@ -50,27 +48,30 @@ class Label:
         two labels.
         """
         combined_sources = self.sources.union(other.sources)
-        combined_sanitizers = self.sanitizers.copy()
+        combined_flows = {}
 
-        for source in other.sanitizers:
-            sanitizers = other.sanitizers[source]
-            if source in combined_sanitizers:
-                combined_sanitizers[source] = combined_sanitizers[source].union(
-                    sanitizers
-                )
-            else:
-                combined_sanitizers[source] = sanitizers
+        for source, _ in combined_sources:
+            self_flows = deepcopy(self.get_flows_from_source(source))
+            other_flows = deepcopy(other.get_flows_from_source(source))
+            combined_flows[source] = self_flows.union(other_flows)
 
-        return Label(combined_sources, combined_sanitizers)
+        label = Label()
+        label.sources = combined_sources
+        label.flows = combined_flows
+
+        return label
 
     def to_json(self) -> Dict:
         return {
             "sources": [source for source in self.sources],
-            "sanitizers": {
-                str(source): [sanitizer for sanitizer in sanitizers]
-                for source, sanitizers in self.sanitizers.items()
+            "flows": {
+                source: [flow.to_json() for flow in self.flows[source]]
+                for source in self.flows
             },
         }
 
     def __repr__(self) -> str:
         return json.dumps(self.to_json(), indent=2)
+
+    def __eq__(self, other) -> bool:
+        return self.sources == other.sources and self.flows == other.flows

@@ -24,15 +24,22 @@ class Vulnerabilities:
         self.policy = policy
         self.multilabelling = multilabelling
         self.multi_sink = MultiSink()
+        self.illegal_flows: Set[IllegalFlow] = set()
 
     def get_patterns(self) -> Set[Pattern]:
         return self.policy.get_patterns()
+
+    def has_multi_label(self, variable: Variable) -> bool:
+        return self.multilabelling.has_multi_label(variable)
 
     def get_multi_label(self, variable: Variable) -> MultiLabel:
         return self.multilabelling.get_multi_label(variable)
 
     def add_multi_label(self, label: MultiLabel, variable: Variable) -> None:
         self.multilabelling.add_multi_label(label, variable)
+
+    def add_illegal_flow(self, illegal_flow: IllegalFlow) -> None:
+        self.illegal_flows.add(illegal_flow)
 
     def add_sink(
         self,
@@ -43,36 +50,16 @@ class Vulnerabilities:
         self.multi_sink.add_sink(pattern, sink, lineno)
 
     def get_illegal_flows(self) -> Set[IllegalFlow]:
-        illegal_flows = set()
-
-        for pattern in self.multilabelling.get_patterns():
-            i = 1
-            for sink, sink_lineno in self.multi_sink.get_sinks(pattern):
-                label = self.multilabelling.get_multi_label(sink).get_label(pattern)
-                for source, source_lineno in label.get_sources():
-                    if sink == source:
-                        continue
-                    sanitizers = list(label.get_sanitizers_for_source(source))
-                    illegal_flows.add(
-                        IllegalFlow(
-                            pattern.get_vulnerability() + "_" + str(i),
-                            source,
-                            source_lineno,
-                            sink,
-                            sink_lineno,
-                            True,
-                            [] if len(sanitizers) == 0 else [sanitizers],
-                        )
-                    )
-                    i += 1
-
-        return illegal_flows
+        return self.illegal_flows
 
     def to_json(self) -> Dict:
         return {
             "policy": self.policy.to_json(),
             "multilabelling": self.multilabelling.to_json(),
             "multi_sink": self.multi_sink.to_json(),
+            "illegal_flows": [
+                illegal_flow.to_json() for illegal_flow in self.illegal_flows
+            ],
         }
 
     def __repr__(self) -> str:

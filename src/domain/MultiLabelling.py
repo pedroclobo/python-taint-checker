@@ -28,10 +28,7 @@ class MultiLabelling:
         return set(self.mapping.values())
 
     def add_multi_label(self, multilabel: MultiLabel, name: Variable) -> None:
-        if self.has_multi_label(name):
-            self.mapping[name] = multilabel.combine(self.get_multi_label(name))
-        else:
-            self.mapping[name] = multilabel
+        self.mapping[name] = multilabel
 
     def get_patterns(self) -> Set[Pattern]:
         return set.union(

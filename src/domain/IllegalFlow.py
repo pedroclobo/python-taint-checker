@@ -1,6 +1,7 @@
 import json
 
 from typing import Dict, List, Tuple
+from domain.Flow import Flow
 from domain.Sanitizer import Sanitizer
 
 from domain.Vulnerability import Vulnerability
@@ -17,7 +18,7 @@ class IllegalFlow:
         sink: Sink,
         sink_lineno: int,
         unsanitized_flows: bool,
-        sanitized_flows: List[Tuple[Sanitizer, int]],
+        sanitized_flows: List[Flow],
     ) -> None:
         self.vulnerability = vulnerability
         self.source = source
@@ -36,7 +37,12 @@ class IllegalFlow:
             "source": [str(self.source), self.source_lineno],
             "sink": [str(self.sink), self.sink_lineno],
             "unsanitized_flows": "yes" if self.unsanitized_flows else "no",
-            "sanitized_flows": self.sanitized_flows,
+            "sanitized_flows": list(
+                map(
+                    lambda flow: flow.to_json(),
+                    filter(lambda flow: not flow.is_empty(), self.sanitized_flows),
+                )
+            ),
         }
 
     def __repr__(self) -> str:
