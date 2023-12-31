@@ -52,9 +52,7 @@ if __name__ == "__main__":
 
     # Find illegal flows
     vulnerabilities = Vulnerabilities(policy)
-    nodeProcessor = NodeProcessor(
-        vulnerabilities, uninitialized_variable_detector.get_uninitialized_variables()
-    )
+    nodeProcessor = NodeProcessor(vulnerabilities, uninitialized_variable_detector)
     nodeProcessor.visit(tree)
 
     illegal_flows = [

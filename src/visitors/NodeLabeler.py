@@ -1,12 +1,11 @@
 import ast
 
-from typing import Set
 from domain.Flow import Flow
-
 from domain.Label import Label
 from domain.MultiLabel import MultiLabel
-from domain.Variable import Variable
 from domain.Vulnerabilities import Vulnerabilities
+
+from visitors.UninitializedVariableDetector import UninitializedVariableDetector
 
 
 class NodeLabeler(ast.NodeVisitor):
@@ -17,10 +16,10 @@ class NodeLabeler(ast.NodeVisitor):
     def __init__(
         self,
         vulnerabilities: Vulnerabilities,
-        uninitialized_variables: Set[Variable],
+        uninitialized_variable_detector: UninitializedVariableDetector,
     ):
         self.vulnerabilities = vulnerabilities
-        self.uninitialized_variables: Set[Variable] = uninitialized_variables
+        self.uninitialized_variable_detector = uninitialized_variable_detector
 
     def visit(self, node):
         method_name = "visit_" + node.__class__.__name__
@@ -41,8 +40,10 @@ class NodeLabeler(ast.NodeVisitor):
 
         # mark name as source
         for pattern in self.vulnerabilities.get_patterns():
-            if (pattern.has_source(node.id) and isinstance(node.ctx, ast.Load)) or (
-                node.id in self.uninitialized_variables
+            if (
+                pattern.has_source(node.id) and isinstance(node.ctx, ast.Load)
+            ) or self.uninitialized_variable_detector.is_uninitialized(
+                node.id, node.lineno
             ):
                 label = Label()
                 label.add_source(node.id, node.lineno)
@@ -113,7 +114,9 @@ class NodeLabeler(ast.NodeVisitor):
             if (
                 pattern.has_source(node.value.id)
                 and isinstance(node.value.ctx, ast.Load)
-            ) or (node.value.id in self.uninitialized_variables):
+            ) or self.uninitialized_variable_detector.is_uninitialized(
+                node.value.id, node.lineno
+            ):
                 label = Label()
                 label.add_source(node.value.id, node.lineno)
                 multi_label = multi_label.combine(MultiLabel({pattern: label}))

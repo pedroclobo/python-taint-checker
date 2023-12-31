@@ -7,14 +7,17 @@ from domain.Variable import Variable
 from domain.Vulnerabilities import Vulnerabilities
 
 from visitors.NodeLabeler import NodeLabeler
+from visitors.UninitializedVariableDetector import UninitializedVariableDetector
 
 
 class NodeProcessor(ast.NodeVisitor):
     def __init__(
-        self, vulnerabilities: Vulnerabilities, uninitialized_variables: Set[Variable]
+        self,
+        vulnerabilities: Vulnerabilities,
+        uninitialized_variable_detector: UninitializedVariableDetector,
     ):
         self.vulnerabilities = vulnerabilities
-        self.uninitialized_variables = uninitialized_variables
+        self.uninitialized_variable_detector = uninitialized_variable_detector
 
     def visit(self, node):
         method_name = "visit_" + node.__class__.__name__
@@ -35,7 +38,7 @@ class NodeProcessor(ast.NodeVisitor):
 
     def visit_Name(self, node):
         # add multi-label
-        nodeLabel = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        nodeLabel = NodeLabeler(self.vulnerabilities, self.uninitialized_variable_detector)
         self.vulnerabilities.add_multi_label(nodeLabel.visit(node), node.id)
 
     def visit_BinOp(self, node):
@@ -56,7 +59,7 @@ class NodeProcessor(ast.NodeVisitor):
         for arg in node.args:
             self.visit(arg)
 
-        node_labeler = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        node_labeler = NodeLabeler(self.vulnerabilities, self.uninitialized_variable_detector)
         func_multi_label = node_labeler.visit(node)
 
         if isinstance(node.func, ast.Name):
@@ -87,7 +90,7 @@ class NodeProcessor(ast.NodeVisitor):
                     )
 
     def visit_Attribute(self, node):
-        nodeLabel = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        nodeLabel = NodeLabeler(self.vulnerabilities, self.uninitialized_variable_detector)
         self.vulnerabilities.add_multi_label(
             nodeLabel.visit(node), node.value.id + "." + node.attr
         )
@@ -101,7 +104,7 @@ class NodeProcessor(ast.NodeVisitor):
             self.visit(target)
 
         # the multi-labels of the targets are the labels of the value
-        node_label = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        node_label = NodeLabeler(self.vulnerabilities, self.uninitialized_variable_detector)
         value_multi_label = node_label.visit(node.value)
         for target in node.targets:
             if isinstance(target, ast.Name):
@@ -136,15 +139,19 @@ class NodeProcessor(ast.NodeVisitor):
                                 )
                             )
                 elif isinstance(target, ast.Attribute):
-                    if pattern.has_sink(target.value.id) or pattern.has_sink(target.attr):
+                    if pattern.has_sink(target.value.id) or pattern.has_sink(
+                        target.attr
+                    ):
                         label = self.vulnerabilities.get_multi_label(
                             target.value.id + "." + target.attr
                         ).get_label(pattern)
                         for source, source_lineno in label.get_sources():
                             flows = list(label.get_flows_from_source(source))
-                            target_id = target.value.id if pattern.has_sink(
+                            target_id = (
                                 target.value.id
-                            ) else target.attr
+                                if pattern.has_sink(target.value.id)
+                                else target.attr
+                            )
                             self.vulnerabilities.add_illegal_flow(
                                 IllegalFlow(
                                     pattern.get_vulnerability(),
