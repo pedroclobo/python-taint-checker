@@ -4,7 +4,6 @@ from typing import Dict, Set
 
 from domain.MultiLabel import MultiLabel
 from domain.MultiLabelling import MultiLabelling
-from domain.MultiSink import MultiSink
 from domain.Pattern import Pattern
 from domain.Policy import Policy
 from domain.Sink import Sink
@@ -23,7 +22,6 @@ class Vulnerabilities:
     ) -> None:
         self.policy = policy
         self.multilabelling = multilabelling
-        self.multi_sink = MultiSink()
         self.illegal_flows: Set[IllegalFlow] = set()
 
     def get_patterns(self) -> Set[Pattern]:
@@ -41,14 +39,6 @@ class Vulnerabilities:
     def add_illegal_flow(self, illegal_flow: IllegalFlow) -> None:
         self.illegal_flows.add(illegal_flow)
 
-    def add_sink(
-        self,
-        pattern: Pattern,
-        sink: Sink,
-        lineno: int,
-    ) -> None:
-        self.multi_sink.add_sink(pattern, sink, lineno)
-
     def get_illegal_flows(self) -> Set[IllegalFlow]:
         return self.illegal_flows
 
@@ -56,7 +46,6 @@ class Vulnerabilities:
         return {
             "policy": self.policy.to_json(),
             "multilabelling": self.multilabelling.to_json(),
-            "multi_sink": self.multi_sink.to_json(),
             "illegal_flows": [
                 illegal_flow.to_json() for illegal_flow in self.illegal_flows
             ],

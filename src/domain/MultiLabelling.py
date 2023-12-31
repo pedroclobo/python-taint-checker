@@ -1,9 +1,8 @@
 import json
 
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 from domain.MultiLabel import MultiLabel
-from domain.Sink import Sink
 from domain.Variable import Variable
 from domain.Pattern import Pattern
 
@@ -34,13 +33,6 @@ class MultiLabelling:
         return set.union(
             *[multi_label.get_patterns() for multi_label in self.get_multi_labels()]
         )
-
-    def get_variables_for_pattern(self, pattern: Pattern) -> Set[Variable]:
-        return {
-            variable
-            for variable, multilabel in self.mapping.items()
-            if pattern in multilabel.get_patterns()
-        }
 
     def to_json(self) -> Dict:
         return {

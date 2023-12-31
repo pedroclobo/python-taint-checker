@@ -11,9 +11,6 @@ class Flow:
             flow = []
         self.flow: List[Tuple[Sanitizer, int]] = flow
 
-    def get_flow(self) -> List[Tuple[Sanitizer, int]]:
-        return self.flow
-
     def add_sanitizer(self, sanitizer: Sanitizer, lineno: int) -> None:
         if (sanitizer, lineno) not in self.flow:
             self.flow.append((sanitizer, lineno))

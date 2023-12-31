@@ -1,7 +1,6 @@
 import ast
 import sys
 import json
-from domain.Flow import Flow
 
 from domain.Policy import Policy
 from domain.Pattern import Pattern

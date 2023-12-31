@@ -32,14 +32,8 @@ class Pattern:
     def has_source(self, source: Source) -> bool:
         return source in self.sources
 
-    def get_sanitizers(self) -> Set[Sanitizer]:
-        return self.sanitizers
-
     def has_sanitizer(self, sanitizer: Sanitizer) -> bool:
         return sanitizer in self.sanitizers
-
-    def get_sinks(self) -> Set[Sink]:
-        return self.sinks
 
     def has_sink(self, sink: Sink) -> bool:
         return sink in self.sinks

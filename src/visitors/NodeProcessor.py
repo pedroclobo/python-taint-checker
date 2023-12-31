@@ -3,7 +3,6 @@ from typing import Set
 from domain.Flow import Flow
 from domain.IllegalFlow import IllegalFlow
 
-from domain.MultiLabel import MultiLabel
 from domain.Variable import Variable
 from domain.Vulnerabilities import Vulnerabilities
 

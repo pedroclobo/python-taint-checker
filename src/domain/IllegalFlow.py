@@ -1,8 +1,7 @@
 import json
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from domain.Flow import Flow
-from domain.Sanitizer import Sanitizer
 
 from domain.Vulnerability import Vulnerability
 from domain.Source import Source

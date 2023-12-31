@@ -1,7 +1,7 @@
 from copy import deepcopy
 import json
 
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Set, Tuple
 from domain.Flow import Flow
 
 from domain.Sanitizer import Sanitizer
