@@ -9,7 +9,7 @@ class UninitializedVariableDetector(ast.NodeVisitor):
     Searches for uninitialized variables
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.variables: Set[Variable] = set()
         self.initialized: Set[Variable] = set()
 
@@ -52,13 +52,20 @@ class UninitializedVariableDetector(ast.NodeVisitor):
 
     def visit_Call(self, node):
         self.visit(node.func)
-        self.initialized.add(node.func.id) # function are considered to be initialized
+
+        # mark function as initialized
+        if isinstance(node.func, ast.Name):
+            self.initialized.add(node.func.id)
 
         for arg in node.args:
             self.visit(arg)
 
     def visit_Attribute(self, node):
-        raise NotImplementedError
+        self.visit(node.value)
+
+        self.variables.add(node.attr)
+        # attributes are always initialized
+        self.initialized.add(node.attr)
 
     def visit_Expr(self, node):
         self.visit(node.value)

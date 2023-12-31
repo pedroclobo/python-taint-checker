@@ -60,9 +60,16 @@ class NodeProcessor(ast.NodeVisitor):
         node_labeler = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
         func_multi_label = node_labeler.visit(node)
 
+        if isinstance(node.func, ast.Name):
+            func_id = node.func.id
+        elif isinstance(node.func, ast.Attribute):
+            func_id = node.func.attr
+        else:
+            raise NotImplementedError
+
         # add sinks
         for pattern in self.vulnerabilities.get_patterns():
-            if pattern.has_sink(node.func.id):
+            if pattern.has_sink(func_id):
                 label = func_multi_label.get_label(pattern)
                 for source, source_lineno in label.get_sources():
                     if node.func.id == source:
@@ -73,7 +80,7 @@ class NodeProcessor(ast.NodeVisitor):
                             pattern.get_vulnerability(),
                             source,
                             source_lineno,
-                            node.func.id,
+                            func_id,
                             node.lineno,
                             Flow() in flows,
                             [] if len(flows) == 0 else flows,
@@ -81,7 +88,10 @@ class NodeProcessor(ast.NodeVisitor):
                     )
 
     def visit_Attribute(self, node):
-        raise NotImplementedError
+        nodeLabel = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
+        self.vulnerabilities.add_multi_label(
+            nodeLabel.visit(node), node.value.id + "." + node.attr
+        )
 
     def visit_Expr(self, node):
         self.visit(node.value)
@@ -95,28 +105,58 @@ class NodeProcessor(ast.NodeVisitor):
         node_label = NodeLabeler(self.vulnerabilities, self.uninitialized_variables)
         value_multi_label = node_label.visit(node.value)
         for target in node.targets:
-            self.vulnerabilities.add_multi_label(value_multi_label, target.id)
+            if isinstance(target, ast.Name):
+                target_id = target.id
+            elif isinstance(target, ast.Attribute):
+                target_id = target.value.id + "." + target.attr
+            else:
+                raise NotImplementedError
+            self.vulnerabilities.add_multi_label(value_multi_label, target_id)
 
         # add sinks
         for pattern in self.vulnerabilities.get_patterns():
             for target in node.targets:
-                if pattern.has_sink(target.id):
-                    label = self.vulnerabilities.get_multi_label(target.id).get_label(pattern)
-                    for source, source_lineno in label.get_sources():
-                        if target.id == source:
-                            continue
-                        flows = list(label.get_flows_from_source(source))
-                        self.vulnerabilities.add_illegal_flow(
-                            IllegalFlow(
-                                pattern.get_vulnerability(),
-                                source,
-                                source_lineno,
-                                target.id,
-                                node.lineno,
-                                Flow() in flows,
-                                [] if len(flows) == 0 else flows,
+                if isinstance(target, ast.Name):
+                    if pattern.has_sink(target.id):
+                        label = self.vulnerabilities.get_multi_label(
+                            target_id
+                        ).get_label(pattern)
+                        for source, source_lineno in label.get_sources():
+                            if target_id == source:
+                                continue
+                            flows = list(label.get_flows_from_source(source))
+                            self.vulnerabilities.add_illegal_flow(
+                                IllegalFlow(
+                                    pattern.get_vulnerability(),
+                                    source,
+                                    source_lineno,
+                                    target_id,
+                                    node.lineno,
+                                    Flow() in flows,
+                                    [] if len(flows) == 0 else flows,
+                                )
                             )
-                        )
+                elif isinstance(target, ast.Attribute):
+                    if pattern.has_sink(target.value.id) or pattern.has_sink(target.attr):
+                        label = self.vulnerabilities.get_multi_label(
+                            target.value.id + "." + target.attr
+                        ).get_label(pattern)
+                        for source, source_lineno in label.get_sources():
+                            flows = list(label.get_flows_from_source(source))
+                            target_id = target.value.id if pattern.has_sink(
+                                target.value.id
+                            ) else target.attr
+                            self.vulnerabilities.add_illegal_flow(
+                                IllegalFlow(
+                                    pattern.get_vulnerability(),
+                                    source,
+                                    source_lineno,
+                                    target_id,
+                                    node.lineno,
+                                    Flow() in flows,
+                                    [] if len(flows) == 0 else flows,
+                                )
+                            )
 
     def visit_If(self, node):
         raise NotImplementedError
