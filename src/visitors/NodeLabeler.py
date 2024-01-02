@@ -21,16 +21,8 @@ class NodeLabeler(ast.NodeVisitor):
         self.vulnerabilities = vulnerabilities
         self.uninitialized_variable_detector = uninitialized_variable_detector
 
-    def visit(self, node):
-        method_name = "visit_" + node.__class__.__name__
-        visitor = getattr(self, method_name, self.generic_visit)
-        return visitor(node)
-
-    def generic_visit(self, node):
-        print(f"Processing generic visit for {node.__class__.__name__}")
-
-    def visit_Module(self, node):
-        raise ValueError
+    def visit_Expr(self, node):
+        return self.visit(node.value)
 
     def visit_Constant(self, node):
         return MultiLabel()
@@ -67,14 +59,14 @@ class NodeLabeler(ast.NodeVisitor):
     def visit_Compare(self, node):
         multi_label_comparators = MultiLabel()
         for comparator in node.comparators:
-            multi_label_comparators = multi_label_comparators.combine(self.visit(comparator))
+            multi_label_comparators = multi_label_comparators.combine(
+                self.visit(comparator)
+            )
 
         return self.visit(node.left).combine(multi_label_comparators)
 
     def visit_Call(self, node):
-        multi_label_func = self.visit(
-            node.func
-        )  # treat as binop? combine labels in attribute
+        multi_label_func = self.visit(node.func)
 
         if isinstance(node.func, ast.Name):
             func_id = node.func.id
@@ -137,15 +129,3 @@ class NodeLabeler(ast.NodeVisitor):
                 multi_label = multi_label.combine(MultiLabel({pattern: label}))
 
         return multi_label
-
-    def visit_Expr(self, node):
-        return self.visit(node.value)
-
-    def visit_Assign(self, node):
-        raise ValueError
-
-    def visit_If(self, node):
-        raise ValueError
-
-    def visit_While(self, node):
-        raise ValueError

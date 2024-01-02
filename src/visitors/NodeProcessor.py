@@ -19,44 +19,12 @@ class NodeProcessor(ast.NodeVisitor):
         self.vulnerabilities = vulnerabilities
         self.uninitialized_variable_detector = uninitialized_variable_detector
 
-    def visit(self, node):
-        method_name = "visit_" + node.__class__.__name__
-        visitor = getattr(self, method_name, self.generic_visit)
-        return visitor(node)
-
-    def generic_visit(self, node):
-        print(f"Processing generic visit for {node.__class__.__name__}")
-
-    # Entry point
-    def visit_Module(self, node):
-        for child in node.body:
-            self.visit(child)
-
-    def visit_Constant(self, node):
-        return
-
     def visit_Name(self, node):
         # add multi-label
         nodeLabel = NodeLabeler(
             self.vulnerabilities, self.uninitialized_variable_detector
         )
         self.vulnerabilities.add_multi_label(nodeLabel.visit(node), node.id)
-
-    def visit_BinOp(self, node):
-        self.visit(node.left)
-        self.visit(node.right)
-
-    def visit_UnaryOp(self, node):
-        self.visit(node.operand)
-
-    def visit_BoolOp(self, node):
-        for value in node.values:
-            self.visit(value)
-
-    def visit_Compare(self, node):
-        self.visit(node.left)
-        for comparator in node.comparators:
-            self.visit(comparator)
 
     def visit_Call(self, node):
         self.visit(node.func)
@@ -104,9 +72,6 @@ class NodeProcessor(ast.NodeVisitor):
         self.vulnerabilities.add_multi_label(
             nodeLabel.visit(node), node.value.id + "." + node.attr
         )
-
-    def visit_Expr(self, node):
-        self.visit(node.value)
 
     def visit_Assign(self, node):
         self.visit(node.value)

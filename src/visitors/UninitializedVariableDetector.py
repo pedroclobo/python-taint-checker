@@ -29,42 +29,11 @@ class UninitializedVariableDetector(ast.NodeVisitor):
             self.initialized[variable] = lineno
         self.initialized[variable] = min(self.initialized[variable], lineno)
 
-    def visit(self, node):
-        method_name = "visit_" + node.__class__.__name__
-        visitor = getattr(self, method_name, self.generic_visit)
-        return visitor(node)
-
-    def generic_visit(self, node):
-        print(f"Processing generic visit for {node.__class__.__name__}")
-
-    def visit_Module(self, node):
-        for child in node.body:
-            self.visit(child)
-
-    def visit_Constant(self, node):
-        return
-
     def visit_Name(self, node):
         self.variables.add(node.id)
 
         if isinstance(node.ctx, ast.Store):
             self.add_initialized(node.id, node.lineno)
-
-    def visit_BinOp(self, node):
-        self.visit(node.left)
-        self.visit(node.right)
-
-    def visit_UnaryOp(self, node):
-        self.visit(node.operand)
-
-    def visit_BoolOp(self, node):
-        for child in node.values:
-            self.visit(child)
-
-    def visit_Compare(self, node):
-        self.visit(node.left)
-        for child in node.comparators:
-            self.visit(child)
 
     def visit_Call(self, node):
         self.visit(node.func)
@@ -82,27 +51,3 @@ class UninitializedVariableDetector(ast.NodeVisitor):
         # attributes are always initialized
         self.variables.add(node.attr)
         self.add_initialized(node.attr, node.lineno)
-
-    def visit_Expr(self, node):
-        self.visit(node.value)
-
-    def visit_Assign(self, node):
-        for target in node.targets:
-            self.visit(target)
-
-        self.visit(node.value)
-
-    def visit_If(self, node):
-        self.visit(node.test)
-        for child in node.body:
-            self.visit(child)
-        for child in node.orelse:
-            self.visit(child)
-        # raise NotImplementedError
-
-    def visit_While(self, node):
-        self.visit(node.test)
-        for child in node.body:
-            self.visit(child)
-        for child in node.orelse:
-            self.visit(child)
