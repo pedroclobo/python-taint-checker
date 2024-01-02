@@ -146,7 +146,7 @@ class NodeProcessor(ast.NodeVisitor):
                             )
 
     def visit_If(self, node):
-        raise NotImplementedError
+        raise ValueError
 
     def visit_While(self, node):
-        raise NotImplementedError
+        raise ValueError

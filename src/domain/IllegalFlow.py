@@ -30,6 +30,27 @@ class IllegalFlow:
     def get_vulnerability(self) -> Vulnerability:
         return self.vulnerability
 
+    def is_combinable(self, other) -> bool:
+        return (
+            self.vulnerability == other.vulnerability
+            and self.source == other.source
+            and self.source_lineno == other.source_lineno
+            and self.sink == other.sink
+            and self.sink_lineno == other.sink_lineno
+        )
+
+    def combine(self, other) -> "IllegalFlow":
+        assert self.is_combinable(other)
+        return IllegalFlow(
+            self.vulnerability,
+            self.source,
+            self.source_lineno,
+            self.sink,
+            self.sink_lineno,
+            self.unsanitized_flows or other.unsanitized_flows,
+            list(set(self.sanitized_flows + other.sanitized_flows)),
+        )
+
     def to_json(self) -> Dict:
         return {
             "vulnerability": str(self.vulnerability),
