@@ -1,13 +1,17 @@
 import ast
+from copy import deepcopy
 import sys
 import json
 import os
+import itertools
 
 from domain.Policy import Policy
 from domain.Pattern import Pattern
 from domain.Vulnerabilities import Vulnerabilities
 
+from visitors.IfCounter import IfCounter
 from visitors.NodeProcessor import NodeProcessor
+from visitors.IfTransformer import IfTransformer
 from visitors.UninitializedVariableDetector import UninitializedVariableDetector
 
 
@@ -46,18 +50,38 @@ if __name__ == "__main__":
         print("Pattern file not found", file=sys.stderr)
         sys.exit(1)
 
-    # Find uninitialized variables
-    uninitialized_variable_detector = UninitializedVariableDetector()
-    uninitialized_variable_detector.visit(tree)
+    if_counter = IfCounter()
+    if_counter.visit(tree)
 
-    # Find illegal flows
+    branches = itertools.product([True, False], repeat=if_counter.get_count())
+    trees = []
+
+    # Remove if statements from tree
+    for branch in branches:
+        if_transformer = IfTransformer(branch)
+        tree_copy = deepcopy(tree)
+        if_transformer.visit(tree_copy)
+        trees.append(tree_copy)
+
+    illegal_flows = set()
     vulnerabilities = Vulnerabilities(policy)
-    nodeProcessor = NodeProcessor(vulnerabilities, uninitialized_variable_detector)
-    nodeProcessor.visit(tree)
 
-    illegal_flows = [
-        illegal_flow.to_json() for illegal_flow in vulnerabilities.get_illegal_flows()
-    ]
+    for tree in trees:
+        # Find uninitialized variables
+        uninitialized_variable_detector = UninitializedVariableDetector()
+        uninitialized_variable_detector.visit(tree)
+
+        # Find illegal flows
+        vulnerabilities_copy = deepcopy(vulnerabilities)
+        nodeProcessor = NodeProcessor(vulnerabilities_copy, uninitialized_variable_detector)
+        nodeProcessor.visit(tree)
+
+        for illegal_flow in vulnerabilities_copy.get_illegal_flows():
+            illegal_flows.add(illegal_flow)
+
+    illegal_flows = list(illegal_flows)
+    for i in range(len(illegal_flows)):
+        illegal_flows[i] = illegal_flows[i].to_json()
 
     OUTPUT_FILE = f"output/{SLICE_NAME}.output.json"
     if not os.path.exists("output"):

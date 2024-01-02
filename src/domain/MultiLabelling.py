@@ -12,7 +12,7 @@ class MultiLabelling:
     Maps variables to multilabels.
     """
 
-    def __init__(self, mapping: Dict[Variable, MultiLabel] = {}) -> None:
+    def __init__(self, mapping: Dict[Variable, MultiLabel] = dict()) -> None:
         self.mapping = mapping
 
     def has_multi_label(self, name: Variable) -> bool:

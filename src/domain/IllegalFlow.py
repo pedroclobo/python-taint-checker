@@ -46,3 +46,23 @@ class IllegalFlow:
 
     def __repr__(self) -> str:
         return json.dumps(self.to_json())
+
+    def __eq__(self, other) -> bool:
+        if len(self.sanitized_flows) != len(other.sanitized_flows):
+            return False
+
+        for i in range(len(self.sanitized_flows)):
+            if self.sanitized_flows[i] != other.sanitized_flows[i]:
+                return False
+
+        return (
+            self.vulnerability == other.vulnerability
+            and self.source == other.source
+            and self.source_lineno == other.source_lineno
+            and self.sink == other.sink
+            and self.sink_lineno == other.sink_lineno
+            and self.unsanitized_flows == other.unsanitized_flows
+        )
+
+    def __hash__(self) -> int:
+        return 0

@@ -55,13 +55,16 @@ class UninitializedVariableDetector(ast.NodeVisitor):
         self.visit(node.right)
 
     def visit_UnaryOp(self, node):
-        raise NotImplementedError
+        self.visit(node.operand)
 
     def visit_BoolOp(self, node):
-        raise NotImplementedError
+        for child in node.values:
+            self.visit(child)
 
     def visit_Compare(self, node):
-        raise NotImplementedError
+        self.visit(node.left)
+        for child in node.comparators:
+            self.visit(child)
 
     def visit_Call(self, node):
         self.visit(node.func)
@@ -90,7 +93,16 @@ class UninitializedVariableDetector(ast.NodeVisitor):
         self.visit(node.value)
 
     def visit_If(self, node):
-        raise NotImplementedError
+        self.visit(node.test)
+        for child in node.body:
+            self.visit(child)
+        for child in node.orelse:
+            self.visit(child)
+        # raise NotImplementedError
 
     def visit_While(self, node):
-        raise NotImplementedError
+        self.visit(node.test)
+        for child in node.body:
+            self.visit(child)
+        for child in node.orelse:
+            self.visit(child)

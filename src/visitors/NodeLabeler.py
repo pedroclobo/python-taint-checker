@@ -55,13 +55,21 @@ class NodeLabeler(ast.NodeVisitor):
         return self.visit(node.left).combine(self.visit(node.right))
 
     def visit_UnaryOp(self, node):
-        raise NotImplementedError
+        return self.visit(node.operand)
 
     def visit_BoolOp(self, node):
-        raise NotImplementedError
+        multi_label_values = MultiLabel()
+        for value in node.values:
+            multi_label_values = multi_label_values.combine(self.visit(value))
+
+        return multi_label_values
 
     def visit_Compare(self, node):
-        raise NotImplementedError
+        multi_label_comparators = MultiLabel()
+        for comparator in node.comparators:
+            multi_label_comparators = multi_label_comparators.combine(self.visit(comparator))
+
+        return self.visit(node.left).combine(multi_label_comparators)
 
     def visit_Call(self, node):
         multi_label_func = self.visit(
@@ -73,7 +81,7 @@ class NodeLabeler(ast.NodeVisitor):
         elif isinstance(node.func, ast.Attribute):
             func_id = node.func.attr
         else:
-            raise NotImplementedError
+            raise ValueError
 
         multi_label_args = MultiLabel()
         for arg in node.args:
@@ -134,10 +142,10 @@ class NodeLabeler(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Assign(self, node):
-        raise NotImplementedError
+        raise ValueError
 
     def visit_If(self, node):
-        raise NotImplementedError
+        raise ValueError
 
     def visit_While(self, node):
-        raise NotImplementedError
+        raise ValueError

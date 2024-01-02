@@ -17,11 +17,9 @@ class Vulnerabilities:
     of the slice.
     """
 
-    def __init__(
-        self, policy: Policy, multilabelling: MultiLabelling = MultiLabelling()
-    ) -> None:
+    def __init__(self, policy: Policy) -> None:
         self.policy = policy
-        self.multilabelling = multilabelling
+        self.multilabelling = MultiLabelling()
         self.illegal_flows: Set[IllegalFlow] = set()
 
     def get_patterns(self) -> Set[Pattern]:
