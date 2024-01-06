@@ -1,0 +1,96 @@
+[
+    {
+        "vulnerability": "Code Injection",
+        "sources": [
+            "input"
+        ],
+        "sanitizers": [
+            "escape"
+        ],
+        "sinks": [
+            "eval"
+        ],
+        "implicit": "no"
+    },
+    {
+        "vulnerability": "SQL Injection",
+        "sources": [
+            "get",
+            "get_object_or_404",
+            "get_list_or_404"
+        ],
+        "sanitizers": [
+            "escape",
+            "escape_string"
+        ],
+        "sinks": [
+            "execute",
+            "executemany",
+            "callproc",
+            "raw",
+            "RawSQL"
+        ],
+        "implicit": "yes"
+    },
+    {
+        "vulnerability": "Path Traversal",
+        "sources": [
+            "input"
+        ],
+        "sanitizers": [
+            "abspath",
+            "realpath",
+            "commonprefix",
+            "escape"
+        ],
+        "sinks": [
+            "open",
+            "read",
+            "write"
+        ],
+        "implicit": "no"
+    },
+    {
+        "vulnerability": "Cross-Site Scripting",
+        "sources": [
+            "get",
+            "get_object_or_404",
+            "get_list_or_404"
+        ],
+        "sanitizers": [
+            "clean",
+            "escape",
+            "render_to_response",
+            "render",
+            "render_template",
+            "flatatt"
+        ],
+        "sinks": [
+            "mark_safe",
+            "HttpResponse",
+            "HttpResponseRedirect",
+            "Response",
+            "Raw",
+            "Markup"
+        ],
+        "implicit": "no"
+    },
+    {
+        "vulnerability": "Command Injection",
+        "sources": [
+            "input"
+        ],
+        "sanitizers": [
+            "escape"
+        ],
+        "sinks": [
+            "run",
+            "Popen",
+            "system",
+            "popen",
+            "exec"
+        ],
+        "implicit": "no"
+    }
+    
+]
